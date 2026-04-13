@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ranked Choice Voting</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="passcode-container">
+    <div class="card passcode-box">
+      <h1>Ranked Choice Voting</h1>
+      <p class="mb-2">Enter the passcode to continue.</p>
+      <div class="form-group">
+        <input type="password" id="passcode" placeholder="Passcode" autocomplete="off">
+      </div>
+      <button class="btn btn-primary" id="enter-btn">Enter</button>
+      <div id="error-msg" class="alert alert-error hidden mt-2"></div>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script>
+    // If already authenticated, skip straight to voting
+    if (sessionStorage.getItem('rcv_passcode') === CONFIG.passcode) {
+      window.location.href = 'vote.html';
+    }
+
+    document.getElementById('enter-btn').addEventListener('click', tryEnter);
+    document.getElementById('passcode').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') tryEnter();
+    });
+
+    function tryEnter() {
+      var code = document.getElementById('passcode').value;
+      if (code === CONFIG.passcode) {
+        sessionStorage.setItem('rcv_passcode', code);
+        window.location.href = 'vote.html';
+      } else {
+        var err = document.getElementById('error-msg');
+        err.textContent = 'Incorrect passcode.';
+        err.classList.remove('hidden');
+      }
+    }
+  </script>
+</body>
+</html>

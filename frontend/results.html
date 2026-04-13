@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Results - Ranked Choice Voting</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav>
+    <span class="brand">RCV</span>
+    <a href="vote.html">Vote</a>
+    <a href="results.html">Results</a>
+    <a href="admin.html">Admin</a>
+  </nav>
+
+  <div class="container">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <h1>Results</h1>
+      <button class="btn btn-primary" id="refresh-btn">Refresh</button>
+    </div>
+    <p id="voter-count" class="mb-2"></p>
+
+    <div class="card">
+      <div id="results-container">
+        <p>Loading results...</p>
+      </div>
+    </div>
+
+    <div class="card" id="voter-list"></div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/results.js"></script>
+</body>
+</html>

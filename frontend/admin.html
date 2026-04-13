@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - Ranked Choice Voting</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav>
+    <span class="brand">RCV</span>
+    <a href="vote.html">Vote</a>
+    <a href="results.html">Results</a>
+    <a href="admin.html">Admin</a>
+  </nav>
+
+  <div class="container">
+    <h1>Survey Admin</h1>
+
+    <div id="admin-gate" class="card">
+      <div class="form-group">
+        <label for="admin-code">Admin Code</label>
+        <input type="password" id="admin-code" placeholder="Enter admin code" autocomplete="off">
+      </div>
+      <button class="btn btn-primary" id="admin-login-btn">Unlock</button>
+    </div>
+
+    <div id="admin-panel" class="hidden">
+      <div class="card">
+        <h2>Survey Items</h2>
+        <div class="form-group" style="display:flex;gap:8px;">
+          <input type="text" id="new-item" placeholder="Add a new item..." style="flex:1;">
+          <button class="btn btn-primary" id="add-item-btn">Add</button>
+        </div>
+        <ul class="item-list" id="item-list"></ul>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>

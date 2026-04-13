@@ -1,0 +1,319 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #f5f5f5;
+  color: #333;
+  line-height: 1.6;
+}
+
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Navigation */
+nav {
+  background: #2c3e50;
+  padding: 12px 20px;
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+nav a {
+  color: #ecf0f1;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+nav a:hover {
+  color: #3498db;
+}
+
+nav .brand {
+  font-size: 1.2em;
+  font-weight: 700;
+  margin-right: auto;
+  color: #ecf0f1;
+}
+
+/* Typography */
+h1, h2 {
+  margin-bottom: 16px;
+  color: #2c3e50;
+}
+
+/* Card */
+.card {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Forms */
+.form-group {
+  margin-bottom: 16px;
+}
+
+label {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+input[type="text"],
+input[type="password"] {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+input:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 2px rgba(52,152,219,0.2);
+}
+
+/* Buttons */
+button, .btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.btn-primary {
+  background: #3498db;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #2980b9;
+}
+
+.btn-primary:disabled {
+  background: #95c8e8;
+  cursor: not-allowed;
+}
+
+.btn-danger {
+  background: #e74c3c;
+  color: white;
+}
+
+.btn-danger:hover {
+  background: #c0392b;
+}
+
+.btn-sm {
+  padding: 4px 10px;
+  font-size: 14px;
+}
+
+/* Passcode page */
+.passcode-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 80vh;
+}
+
+.passcode-box {
+  text-align: center;
+  width: 100%;
+  max-width: 400px;
+}
+
+/* Admin item list */
+.item-list {
+  list-style: none;
+}
+
+.item-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.item-list li:last-child {
+  border-bottom: none;
+}
+
+/* Voting two-panel layout */
+.vote-panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 600px) {
+  .vote-panels {
+    grid-template-columns: 1fr;
+  }
+}
+
+.panel {
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.panel h3 {
+  margin-bottom: 12px;
+  color: #2c3e50;
+}
+
+.panel-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  background: #f8f9fa;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+  user-select: none;
+}
+
+.panel-item:hover {
+  background: #e8f4fd;
+}
+
+.panel-item .rank {
+  font-weight: 700;
+  color: #3498db;
+  margin-right: 12px;
+  min-width: 24px;
+}
+
+.panel-item .item-name {
+  flex: 1;
+}
+
+.panel-item .move-btns {
+  display: flex;
+  gap: 4px;
+}
+
+.panel-item .move-btns button {
+  padding: 2px 8px;
+  font-size: 12px;
+  background: #ddd;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.panel-item .move-btns button:hover {
+  background: #bbb;
+}
+
+.panel-item .move-btns button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* Results bars */
+.result-bar {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.result-bar .rank {
+  font-weight: 700;
+  min-width: 30px;
+  color: #2c3e50;
+}
+
+.result-bar .name {
+  min-width: 150px;
+  font-weight: 500;
+}
+
+.result-bar .bar-container {
+  flex: 1;
+  height: 28px;
+  background: #ecf0f1;
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 0 12px;
+}
+
+.result-bar .bar {
+  height: 100%;
+  background: #3498db;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.result-bar .score {
+  font-weight: 600;
+  min-width: 50px;
+  text-align: right;
+}
+
+/* Voter tags on results page */
+.voter-tag {
+  display: inline-block;
+  padding: 4px 10px;
+  margin: 4px;
+  background: #ecf0f1;
+  border-radius: 12px;
+  font-size: 14px;
+}
+
+/* Alerts */
+.alert {
+  padding: 12px 16px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+}
+
+.alert-warning {
+  background: #ffeaa7;
+  color: #856404;
+}
+
+.alert-error {
+  background: #fab1a0;
+  color: #721c24;
+}
+
+.alert-success {
+  background: #55efc4;
+  color: #155724;
+}
+
+/* Utilities */
+.hidden {
+  display: none !important;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.mt-2 {
+  margin-top: 16px;
+}
+
+.mb-2 {
+  margin-bottom: 16px;
+}
