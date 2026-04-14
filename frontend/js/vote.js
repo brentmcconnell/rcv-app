@@ -21,6 +21,7 @@ document.addEventListener("DOMContentLoaded", function () {
   var items = [];
   var ranked = [];
   var available = [];
+  var previousRankings = null;
 
   nameBtn.addEventListener("click", checkName);
   nameInput.addEventListener("keydown", function (e) {
@@ -38,14 +39,9 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
 
-    // Suggest title-case if the user typed a multi-word all-lowercase name.
-    if (raw.indexOf(" ") !== -1 && raw === raw.toLowerCase()) {
-      var suggested = titleCase(raw);
-      if (confirm('Did you mean "' + suggested + '"?\n\nOK = use corrected name\nCancel = keep as typed')) {
-        raw = suggested;
-        nameInput.value = raw;
-      }
-    }
+    // Auto-capitalize first letter
+    raw = raw.charAt(0).toUpperCase() + raw.slice(1);
+    nameInput.value = raw;
 
     voterName = normalizeName(raw);
     voterKey = normalizeNameKey(voterName);
@@ -63,10 +59,14 @@ document.addEventListener("DOMContentLoaded", function () {
       var result = findSimilarNames(voterName, existingNames);
 
       if (result.exact) {
-        showAlert(nameSection, '"' + result.name + '" has already voted. Each person can only vote once.');
-        nameBtn.disabled = false;
-        nameBtn.textContent = "Continue";
-        return;
+        showAlert(nameSection, '"' + result.name + '" has already voted. You can update your rankings.', "warning");
+        // Fetch previous vote to pre-populate rankings
+        var matchedVote = votes.find(function (v) {
+          return (v.DisplayName || v.RowKey).toLowerCase() === normalizeName(voterName).toLowerCase();
+        });
+        if (matchedVote && matchedVote.Rankings) {
+          previousRankings = JSON.parse(matchedVote.Rankings);
+        }
       }
 
       if (result.similar && result.similar.length > 0) {
@@ -114,8 +114,15 @@ document.addEventListener("DOMContentLoaded", function () {
       voteSection.classList.remove("hidden");
       document.getElementById("greeting").textContent = "Voting as: " + voterName;
 
-      ranked = [];
-      available = items.slice(); // copy
+      if (previousRankings && previousRankings.length > 0) {
+        // Pre-populate with previous vote, filtering out any items no longer in the survey
+        ranked = previousRankings.filter(function (r) { return items.indexOf(r) !== -1; });
+        available = items.filter(function (item) { return ranked.indexOf(item) === -1; });
+        previousRankings = null;
+      } else {
+        ranked = [];
+        available = items.slice();
+      }
       renderPanels();
     }).catch(function (e) {
       showAlert(nameSection, "Failed to load survey items: " + e.message);
@@ -167,9 +174,8 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // ---- Status ----
-    var minRequired = Math.min(5, items.length);
-    rankCount.textContent = ranked.length + " of " + items.length + " ranked (minimum " + minRequired + " required)";
-    submitBtn.disabled = ranked.length < minRequired;
+    rankCount.textContent = ranked.length + " of " + items.length + " ranked";
+    submitBtn.disabled = ranked.length < 1;
   }
 
   function makeHandler(action, i) {
@@ -193,7 +199,7 @@ document.addEventListener("DOMContentLoaded", function () {
     submitBtn.disabled = true;
     submitBtn.textContent = "Submitting...";
 
-    TableStorage.insert("votes", {
+    TableStorage.upsert("votes", {
       PartitionKey: "votes",
       RowKey: voterKey,
       DisplayName: voterName,
@@ -202,11 +208,7 @@ document.addEventListener("DOMContentLoaded", function () {
       voteSection.classList.add("hidden");
       successSection.classList.remove("hidden");
     }).catch(function (e) {
-      if (e.message === "DUPLICATE") {
-        showAlert(container, "A vote with this name already exists!");
-      } else {
-        showAlert(container, "Failed to submit vote: " + e.message);
-      }
+      showAlert(container, "Failed to submit vote: " + e.message);
       submitBtn.disabled = false;
       submitBtn.textContent = "Submit Vote";
     });

@@ -35,12 +35,23 @@ document.addEventListener("DOMContentLoaded", function () {
     if (e.key === "Enter") addItem();
   });
 
+  document.getElementById("clear-votes-btn").addEventListener("click", function () {
+    if (!confirm("This will delete ALL votes. Are you sure?")) return;
+    clearVotes(false);
+  });
+
+  document.getElementById("clear-all-btn").addEventListener("click", function () {
+    if (!confirm("This will delete ALL votes AND survey items. Are you sure?")) return;
+    clearVotes(true);
+  });
+
   // ---- helpers ----
 
   function showAdminPanel() {
     adminGate.classList.add("hidden");
     adminPanel.classList.remove("hidden");
     loadItems();
+    loadVotes();
   }
 
   function loadItems() {
@@ -97,6 +108,63 @@ document.addEventListener("DOMContentLoaded", function () {
       Items: JSON.stringify(items)
     }).catch(function (e) {
       showAlert(container, "Failed to save items: " + e.message);
+    });
+  }
+
+  function loadVotes() {
+    var voteList = document.getElementById("vote-list");
+    TableStorage.query("votes").then(function (votes) {
+      voteList.innerHTML = "";
+      if (votes.length === 0) {
+        voteList.innerHTML = '<li style="color:#999;padding:10px;">No votes yet.</li>';
+        return;
+      }
+      votes.forEach(function (v) {
+        var li = document.createElement("li");
+        li.innerHTML =
+          "<span>" + escapeHtml(v.DisplayName || v.RowKey) + "</span>" +
+          '<button class="btn btn-danger btn-sm">Remove</button>';
+        li.querySelector("button").addEventListener("click", function () {
+          if (!confirm('Remove vote from "' + (v.DisplayName || v.RowKey) + '"?')) return;
+          TableStorage.del("votes", v.PartitionKey, v.RowKey).then(function () {
+            loadVotes();
+          }).catch(function (e) {
+            showAlert(container, "Failed to remove vote: " + e.message);
+          });
+        });
+        voteList.appendChild(li);
+      });
+    }).catch(function () {
+      voteList.innerHTML = '<li style="color:#999;padding:10px;">Failed to load votes.</li>';
+    });
+  }
+
+  function clearVotes(clearItems) {
+    var status = document.getElementById("reset-status");
+    status.style.display = "block";
+    status.textContent = "Deleting votes...";
+
+    TableStorage.query("votes").then(function (votes) {
+      var deletes = votes.map(function (v) {
+        return TableStorage.del("votes", v.PartitionKey, v.RowKey);
+      });
+      return Promise.all(deletes);
+    }).then(function () {
+      if (clearItems) {
+        items = [];
+        return saveItems();
+      }
+    }).then(function () {
+      status.textContent = clearItems
+        ? "All votes and items cleared!"
+        : "All votes cleared!";
+      status.style.color = "#155724";
+      if (clearItems) renderItems();
+      loadVotes();
+      setTimeout(function () { status.style.display = "none"; }, 4000);
+    }).catch(function (e) {
+      status.textContent = "Error: " + e.message;
+      status.style.color = "#721c24";
     });
   }
 
