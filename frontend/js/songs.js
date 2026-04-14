@@ -83,7 +83,7 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
     var voted = JSON.parse(localStorage.getItem("rcv_ondeck_votes") || "{}");
-    var html = '<table class="songs-table"><thead><tr><th>#</th><th>Song</th><th>Votes</th></tr></thead><tbody>';
+    var html = '<table class="songs-table"><thead><tr><th>#</th><th>Song</th><th>Promote to Set List</th></tr></thead><tbody>';
     ondeckData.forEach(function (item, i) {
       var userVote = voted[item.name] || null;
       html += "<tr>";
@@ -112,7 +112,19 @@ document.addEventListener("DOMContentLoaded", function () {
     var voted = JSON.parse(localStorage.getItem("rcv_ondeck_votes") || "{}");
     var prev = voted[item.name] || null;
 
-    if (prev === dir) return;
+    // If already voted same direction, undo the vote.
+    if (prev === dir) {
+      if (dir === "up") item.up = Math.max(0, (item.up || 0) - 1);
+      if (dir === "down") item.down = Math.max(0, (item.down || 0) - 1);
+      delete voted[item.name];
+      localStorage.setItem("rcv_ondeck_votes", JSON.stringify(voted));
+      TableStorage.upsert("songs", {
+        PartitionKey: "config",
+        RowKey: "ondeck",
+        Items: JSON.stringify(ondeckData)
+      }).then(function () { renderOnDeck(el); });
+      return;
+    }
 
     if (prev === "up") item.up = Math.max(0, (item.up || 0) - 1);
     if (prev === "down") item.down = Math.max(0, (item.down || 0) - 1);
@@ -203,9 +215,15 @@ document.addEventListener("DOMContentLoaded", function () {
       var s = songs[i];
       var li = document.createElement("li");
       li.innerHTML =
-        "<span>" + escapeHtml(s.artist) + " — " + escapeHtml(s.title) + "</span>" +
-        '<button class="btn btn-danger btn-sm" data-index="' + i + '">Remove</button>';
-      li.querySelector("button").addEventListener("click", function () { removeSong(i); });
+        "<span>" + escapeHtml(s.artist) + " — " + escapeHtml(s.title) +
+        (s.url ? ' <a href="' + escapeHtml(s.url) + '" target="_blank" style="font-size:12px;color:#3498db;">link</a>' : '') +
+        "</span>" +
+        '<div style="display:flex;gap:4px;">' +
+        '<button class="btn btn-primary btn-sm edit-btn">Edit</button>' +
+        '<button class="btn btn-danger btn-sm remove-btn">Remove</button>' +
+        "</div>";
+      li.querySelector(".edit-btn").addEventListener("click", function () { editSong(i); });
+      li.querySelector(".remove-btn").addEventListener("click", function () { removeSong(i); });
       adminSongsList.appendChild(li);
     });
   }
@@ -253,9 +271,60 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function removeSong(index) {
+    if (!confirm('Remove "' + songs[index].artist + ' — ' + songs[index].title + '"?')) return;
     songs.splice(index, 1);
     saveSongs().then(function () {
       renderSongs();
+      renderAdminList();
+    });
+  }
+
+  function editSong(index) {
+    var s = songs[index];
+
+    // Replace the admin list with an inline edit form.
+    adminSongsList.innerHTML = "";
+    var form = document.createElement("div");
+    form.className = "card";
+    form.innerHTML =
+      '<h3>Editing: ' + escapeHtml(s.artist) + ' — ' + escapeHtml(s.title) + '</h3>' +
+      '<div class="form-group"><label>Artist</label><input type="text" id="edit-artist" value="' + escapeHtml(s.artist) + '"></div>' +
+      '<div class="form-group"><label>Song</label><input type="text" id="edit-title" value="' + escapeHtml(s.title) + '"></div>' +
+      '<div class="form-group"><label>Chords URL <span style="color:#999;font-weight:normal;">(optional)</span></label><input type="text" id="edit-url" value="' + escapeHtml(s.url || "") + '" placeholder="https://..."></div>' +
+      '<div style="display:flex;gap:8px;">' +
+      '<button class="btn btn-primary" id="edit-save-btn">Save</button>' +
+      '<button class="btn btn-danger" id="edit-cancel-btn">Cancel</button>' +
+      '</div>';
+    adminSongsList.appendChild(form);
+
+    document.getElementById("edit-save-btn").addEventListener("click", function () {
+      var newArtist = document.getElementById("edit-artist").value.trim();
+      var newTitle = document.getElementById("edit-title").value.trim();
+      var newUrl = document.getElementById("edit-url").value.trim();
+
+      if (!newArtist || !newTitle) {
+        showAlert(container, "Artist and Song are required.");
+        return;
+      }
+      if (newUrl && !/^https?:\/\//i.test(newUrl)) {
+        showAlert(container, "URL must start with http:// or https://");
+        return;
+      }
+
+      s.artist = newArtist;
+      s.title = newTitle;
+      s.url = newUrl || undefined;
+
+      saveSongs().then(function () {
+        renderSongs();
+        renderAdminList();
+        showAlert(container, "Song updated!", "success");
+      }).catch(function (e) {
+        showAlert(container, "Failed to save: " + e.message);
+      });
+    });
+
+    document.getElementById("edit-cancel-btn").addEventListener("click", function () {
       renderAdminList();
     });
   }

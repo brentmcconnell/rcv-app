@@ -134,6 +134,7 @@ document.addEventListener("DOMContentLoaded", function () {
     loadItems();
     loadVotes();
     loadVotingStatus();
+    loadSuggestions();
   }
 
   function loadItems() {
@@ -254,5 +255,71 @@ document.addEventListener("DOMContentLoaded", function () {
     var div = document.createElement("div");
     div.appendChild(document.createTextNode(str));
     return div.innerHTML;
+  }
+
+  // ---- Song Suggestions ----
+
+  var suggestions = [];
+
+  function loadSuggestions() {
+    var sugList = document.getElementById("suggestions-list");
+    TableStorage.get("survey", "config", "suggestions").then(function (entity) {
+      suggestions = entity ? JSON.parse(entity.Items || "[]") : [];
+      renderSuggestions(sugList);
+    }).catch(function () {
+      suggestions = [];
+      renderSuggestions(sugList);
+    });
+  }
+
+  function renderSuggestions(el) {
+    if (suggestions.length === 0) {
+      el.innerHTML = '<li style="color:#999;padding:10px;">No suggestions yet.</li>';
+      return;
+    }
+    el.innerHTML = "";
+    suggestions.forEach(function (s, i) {
+      var li = document.createElement("li");
+      li.innerHTML =
+        "<span>" + escapeHtml(s.artist) + " — " + escapeHtml(s.title) +
+        (s.url ? ' <a href="' + escapeHtml(s.url) + '" target="_blank" style="font-size:12px;color:#3498db;">chords</a>' : '') +
+        "</span>" +
+        '<div style="display:flex;gap:4px;">' +
+        '<button class="btn btn-primary btn-sm add-btn">Add to Vote</button>' +
+        '<button class="btn btn-danger btn-sm del-btn">Dismiss</button>' +
+        "</div>";
+      li.querySelector(".add-btn").addEventListener("click", function () {
+        var itemName = s.artist + " - " + s.title;
+        if (items.indexOf(itemName) !== -1) {
+          showAlert(container, "Already in the survey items list.");
+          return;
+        }
+        items.push(itemName);
+        saveItems().then(function () {
+          renderItems();
+          // Remove from suggestions
+          suggestions.splice(i, 1);
+          return saveSuggestions();
+        }).then(function () {
+          renderSuggestions(el);
+          showAlert(container, '"' + itemName + '" added to survey items!', "success");
+        });
+      });
+      li.querySelector(".del-btn").addEventListener("click", function () {
+        suggestions.splice(i, 1);
+        saveSuggestions().then(function () {
+          renderSuggestions(el);
+        });
+      });
+      el.appendChild(li);
+    });
+  }
+
+  function saveSuggestions() {
+    return TableStorage.upsert("survey", {
+      PartitionKey: "config",
+      RowKey: "suggestions",
+      Items: JSON.stringify(suggestions)
+    });
   }
 });

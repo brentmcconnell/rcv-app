@@ -27,6 +27,12 @@ variable "admin_code" {
   sensitive   = true
 }
 
+variable "friendly_account_name" {
+  description = "Friendly storage account name for a nicer URL (3-24 lowercase letters/numbers)"
+  type        = string
+  default     = "songsforthebarn"
+}
+
 variable "sas_start" {
   description = "SAS token start time (ISO 8601)"
   type        = string

@@ -69,7 +69,7 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
     var voted = JSON.parse(localStorage.getItem("rcv_ondeck_votes") || "{}");
-    var html = '<table class="songs-table"><thead><tr><th>#</th><th>Song</th><th>Votes</th></tr></thead><tbody>';
+    var html = '<table class="songs-table"><thead><tr><th>#</th><th>Song</th><th>Promote to Set List</th></tr></thead><tbody>';
     ondeckItems.forEach(function (item, i) {
       var userVote = voted[item.name] || null;
       html += "<tr>";
@@ -99,8 +99,15 @@ document.addEventListener("DOMContentLoaded", function () {
     var voted = JSON.parse(localStorage.getItem("rcv_ondeck_votes") || "{}");
     var prev = voted[item.name] || null;
 
-    // If already voted same direction, do nothing.
-    if (prev === dir) return;
+    // If already voted same direction, undo the vote.
+    if (prev === dir) {
+      if (dir === "up") item.up = Math.max(0, (item.up || 0) - 1);
+      if (dir === "down") item.down = Math.max(0, (item.down || 0) - 1);
+      delete voted[item.name];
+      localStorage.setItem("rcv_ondeck_votes", JSON.stringify(voted));
+      saveOnDeck().then(function () { renderOnDeck(); });
+      return;
+    }
 
     // Undo previous vote if switching.
     if (prev === "up") item.up = Math.max(0, (item.up || 0) - 1);
@@ -142,7 +149,7 @@ document.addEventListener("DOMContentLoaded", function () {
       li.innerHTML =
         "<span>" + escapeHtml(item.name) + ' <small style="color:#999;">(' + (item.up || 0) + " up / " + (item.down || 0) + " down)</small></span>" +
         '<div style="display:flex;gap:4px;">' +
-        '<button class="btn btn-primary btn-sm move-btn">Move to Songs</button>' +
+        '<button class="btn btn-primary btn-sm move-btn">Move to Set List</button>' +
         '<button class="btn btn-danger btn-sm remove-btn">Remove</button>' +
         "</div>";
       li.querySelector(".move-btn").addEventListener("click", function () { moveToSongs(i); });
@@ -153,7 +160,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function moveToSongs(index) {
     var name = ondeckItems[index].name;
-    if (!confirm('Move "' + name + '" to Current Songs?\nYou\'ll be prompted for artist name.')) return;
+    if (!confirm('Move "' + name + '" to Current Set List?\nYou\'ll be prompted for artist name.')) return;
 
     var artist = prompt("Enter the artist for \"" + name + "\":");
     if (!artist || !artist.trim()) {
@@ -181,7 +188,7 @@ document.addEventListener("DOMContentLoaded", function () {
                s.title.toLowerCase() === song.title.toLowerCase();
       });
       if (duplicate) {
-        showAlert(container, "That song already exists in Current Songs.");
+        showAlert(container, "That song already exists in Current Set List.");
         return Promise.reject("duplicate");
       }
 
@@ -200,7 +207,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }).then(function () {
       renderOnDeck();
       renderAdminList();
-      showAlert(container, '"' + name + '" moved to Current Songs!', "success");
+      showAlert(container, '"' + name + '" moved to Current Set List!', "success");
     }).catch(function (e) {
       if (e === "duplicate") return;
       showAlert(container, "Failed to move song: " + (e.message || e));

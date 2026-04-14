@@ -29,6 +29,7 @@ document.addEventListener("DOMContentLoaded", function () {
     if (entity && entity.VotingOpen === "false") {
       closedSection.classList.remove("hidden");
       nameSection.classList.add("hidden");
+      initSuggestions();
     } else {
       nameSection.classList.remove("hidden");
     }
@@ -231,5 +232,103 @@ document.addEventListener("DOMContentLoaded", function () {
     var div = document.createElement("div");
     div.appendChild(document.createTextNode(str));
     return div.innerHTML;
+  }
+
+  // ---- Song Suggestions (when voting is closed) ----
+
+  function initSuggestions() {
+    var suggestBtn = document.getElementById("suggest-btn");
+    var artistInput = document.getElementById("suggest-artist");
+    var titleInput = document.getElementById("suggest-title");
+    var urlInput = document.getElementById("suggest-url");
+
+    suggestBtn.addEventListener("click", submitSuggestion);
+    titleInput.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") submitSuggestion();
+    });
+
+    loadSuggestions();
+
+    function submitSuggestion() {
+      var artist = artistInput.value.trim();
+      var title = titleInput.value.trim();
+      var url = urlInput.value.trim();
+
+      if (!artist || !title) {
+        showAlert(closedSection, "Please enter both artist and song name.");
+        return;
+      }
+
+      if (url && !/^https?:\/\//i.test(url)) {
+        showAlert(closedSection, "URL must start with http:// or https://");
+        return;
+      }
+
+      suggestBtn.disabled = true;
+      suggestBtn.textContent = "Submitting...";
+
+      TableStorage.get("survey", "config", "suggestions").then(function (entity) {
+        var suggestions = entity ? JSON.parse(entity.Items || "[]") : [];
+
+        // Check for duplicate
+        var duplicate = suggestions.some(function (s) {
+          return s.artist.toLowerCase() === artist.toLowerCase() &&
+                 s.title.toLowerCase() === title.toLowerCase();
+        });
+        if (duplicate) {
+          showAlert(closedSection, "That song has already been suggested.");
+          suggestBtn.disabled = false;
+          suggestBtn.textContent = "Submit Suggestion";
+          return;
+        }
+
+        var suggestion = { artist: artist, title: title };
+        if (url) suggestion.url = url;
+
+        suggestions.push(suggestion);
+
+        return TableStorage.upsert("survey", {
+          PartitionKey: "config",
+          RowKey: "suggestions",
+          Items: JSON.stringify(suggestions)
+        }).then(function () {
+          artistInput.value = "";
+          titleInput.value = "";
+          urlInput.value = "";
+          showAlert(closedSection, "Suggestion submitted! Thanks!", "success");
+          loadSuggestions();
+        });
+      }).catch(function (e) {
+        showAlert(closedSection, "Failed to submit suggestion: " + e.message);
+      }).then(function () {
+        suggestBtn.disabled = false;
+        suggestBtn.textContent = "Submit Suggestion";
+      });
+    }
+
+    function loadSuggestions() {
+      var listEl = document.getElementById("suggestions-list");
+      TableStorage.get("survey", "config", "suggestions").then(function (entity) {
+        var suggestions = entity ? JSON.parse(entity.Items || "[]") : [];
+        if (suggestions.length === 0) {
+          listEl.innerHTML = '<p style="color:#999;">No suggestions yet. Be the first!</p>';
+          return;
+        }
+        var html = '<table class="songs-table"><thead><tr><th>Artist</th><th>Song</th><th>Chords</th></tr></thead><tbody>';
+        suggestions.forEach(function (s) {
+          html += "<tr><td>" + escapeHtml(s.artist) + "</td><td>" + escapeHtml(s.title) + "</td>";
+          if (s.url) {
+            html += '<td><a href="' + escapeHtml(s.url) + '" target="_blank" rel="noopener noreferrer">View</a></td>';
+          } else {
+            html += '<td style="color:#999;">—</td>';
+          }
+          html += "</tr>";
+        });
+        html += "</tbody></table>";
+        listEl.innerHTML = html;
+      }).catch(function () {
+        listEl.innerHTML = '<p style="color:#999;">Could not load suggestions.</p>';
+      });
+    }
   }
 });

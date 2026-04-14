@@ -9,12 +9,12 @@
 <body>
   <div class="passcode-container">
     <div class="card passcode-box">
+      <img src="img/barn.jpg" alt="Barn" style="max-width:100%;border-radius:8px;margin-bottom:16px;">
       <h1>Songs For The Barn</h1>
-      <p class="mb-2">Enter the passcode to continue.</p>
-      <div class="form-group">
-        <input type="password" id="passcode" placeholder="Passcode" autocomplete="off">
+      <div class="form-group" style="display:flex;gap:8px;">
+        <input type="password" id="passcode" placeholder="Passcode" autocomplete="off" style="flex:1;">
+        <button class="btn btn-primary" id="enter-btn">Enter</button>
       </div>
-      <button class="btn btn-primary" id="enter-btn">Enter</button>
       <div id="error-msg" class="alert alert-error hidden mt-2"></div>
     </div>
   </div>

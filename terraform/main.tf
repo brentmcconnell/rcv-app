@@ -118,7 +118,7 @@ Object.keys(_E).forEach(function (k) { CONFIG[k] = atob(_E[k]); });
   EOT
 }
 
-# Upload all frontend files to the $web blob container
+# Upload all frontend files to the $web blob container (primary)
 resource "null_resource" "upload_frontend" {
   depends_on = [
     azurerm_storage_account.sa,
@@ -140,6 +140,47 @@ resource "null_resource" "upload_frontend" {
     environment = {
       AZURE_STORAGE_ACCOUNT = azurerm_storage_account.sa.name
       AZURE_STORAGE_KEY     = azurerm_storage_account.sa.primary_access_key
+    }
+  }
+}
+
+# Second storage account with a friendly name (static website only, no tables)
+resource "azurerm_storage_account" "friendly" {
+  name                     = var.friendly_account_name
+  resource_group_name      = azurerm_resource_group.rg.name
+  location                 = azurerm_resource_group.rg.location
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
+  min_tls_version          = "TLS1_2"
+
+  static_website {
+    index_document     = "index.html"
+    error_404_document = "index.html"
+  }
+}
+
+# Upload frontend files to the friendly account too
+resource "null_resource" "upload_friendly" {
+  depends_on = [
+    azurerm_storage_account.friendly,
+    local_file.config_js
+  ]
+
+  triggers = {
+    always_run = timestamp()
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      az storage blob upload-batch \
+        --destination '$web' \
+        --source ${path.module}/../frontend \
+        --overwrite
+    EOT
+
+    environment = {
+      AZURE_STORAGE_ACCOUNT = azurerm_storage_account.friendly.name
+      AZURE_STORAGE_KEY     = azurerm_storage_account.friendly.primary_access_key
     }
   }
 }
