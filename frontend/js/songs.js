@@ -47,6 +47,7 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   loadSongs();
+  loadOnDeck();
 
   // ---- helpers ----
 
@@ -54,6 +55,31 @@ document.addEventListener("DOMContentLoaded", function () {
     var div = document.createElement("div");
     div.appendChild(document.createTextNode(str));
     return div.innerHTML;
+  }
+
+  function loadOnDeck() {
+    var ondeckList = document.getElementById("ondeck-list");
+    if (!ondeckList) return;
+    TableStorage.get("songs", "config", "ondeck").then(function (entity) {
+      var items = entity ? JSON.parse(entity.Items || "[]") : [];
+      renderOnDeck(ondeckList, items);
+    }).catch(function (err) {
+      console.error("loadOnDeck error:", err);
+      renderOnDeck(ondeckList, []);
+    });
+  }
+
+  function renderOnDeck(el, items) {
+    if (items.length === 0) {
+      el.innerHTML = '<p style="color:#999;">No songs on deck right now.</p>';
+      return;
+    }
+    var html = '<table class="songs-table"><thead><tr><th>#</th><th>Song</th></tr></thead><tbody>';
+    items.forEach(function (name, i) {
+      html += "<tr><td>" + (i + 1) + "</td><td>" + escapeHtml(name) + "</td></tr>";
+    });
+    html += "</tbody></table>";
+    el.innerHTML = html;
   }
 
   function showAdminPanel() {

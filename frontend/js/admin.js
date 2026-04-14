@@ -39,6 +39,7 @@ document.addEventListener("DOMContentLoaded", function () {
   var votingOpen = true;
 
   toggleVotingBtn.addEventListener("click", function () {
+    var wasOpen = votingOpen;
     votingOpen = !votingOpen;
     TableStorage.upsert("survey", {
       PartitionKey: "config",
@@ -46,11 +47,57 @@ document.addEventListener("DOMContentLoaded", function () {
       VotingOpen: votingOpen ? "true" : "false"
     }).then(function () {
       renderVotingStatus();
+      // When closing voting, auto-promote top 5 to On Deck.
+      if (wasOpen && !votingOpen) {
+        promoteTopFive();
+      }
     }).catch(function (e) {
       votingOpen = !votingOpen;
       showAlert(container, "Failed to update voting status: " + e.message);
     });
   });
+
+  function promoteTopFive() {
+    Promise.all([
+      TableStorage.get("survey", "config", "items"),
+      TableStorage.query("votes")
+    ]).then(function (results) {
+      var itemEntity = results[0];
+      var votes = results[1];
+      var surveyItems = itemEntity ? JSON.parse(itemEntity.Items || "[]") : [];
+
+      if (surveyItems.length === 0 || votes.length === 0) return;
+
+      // Borda count (same as results.js)
+      var totalItems = surveyItems.length;
+      var scores = {};
+      surveyItems.forEach(function (item) { scores[item] = 0; });
+      votes.forEach(function (vote) {
+        var rankings = JSON.parse(vote.Rankings || "[]");
+        rankings.forEach(function (item, index) {
+          if (scores.hasOwnProperty(item)) {
+            scores[item] += (totalItems - index);
+          }
+        });
+      });
+
+      var sorted = Object.keys(scores).map(function (item) {
+        return { name: item, score: scores[item] };
+      }).sort(function (a, b) { return b.score - a.score; });
+
+      var top5 = sorted.slice(0, 5).map(function (entry) { return entry.name; });
+
+      return TableStorage.upsert("songs", {
+        PartitionKey: "config",
+        RowKey: "ondeck",
+        Items: JSON.stringify(top5)
+      });
+    }).then(function () {
+      showAlert(container, "Top 5 songs promoted to On Deck!", "success");
+    }).catch(function (e) {
+      showAlert(container, "Voting closed but failed to promote songs: " + e.message);
+    });
+  }
 
   function loadVotingStatus() {
     TableStorage.get("survey", "config", "status").then(function (entity) {

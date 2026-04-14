@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Results - Ranked Choice Voting</title>
+  <title>On Deck - Songs For The Barn</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -17,24 +17,37 @@
   </nav>
 
   <div class="container">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-      <h1>Results</h1>
-      <button class="btn btn-primary" id="refresh-btn">Refresh</button>
-    </div>
-    <p id="voter-count" class="mb-2"></p>
+    <h1>On Deck</h1>
+    <p class="mb-2">These songs were voted to the top and are being learned.</p>
 
     <div class="card">
-      <div id="results-container">
-        <p>Loading results...</p>
+      <div id="ondeck-list">
+        <p>Loading...</p>
       </div>
     </div>
 
-    <div class="card" id="voter-list"></div>
+    <!-- Admin section -->
+    <div id="admin-gate" class="card">
+      <h2>Manage On Deck</h2>
+      <div class="form-group">
+        <label for="admin-code">Admin Code</label>
+        <input type="password" id="admin-code" placeholder="Enter admin code" autocomplete="off">
+      </div>
+      <button class="btn btn-primary" id="admin-login-btn">Unlock</button>
+    </div>
+
+    <div id="admin-panel" class="hidden">
+      <div class="card">
+        <h2>Move to Current Songs</h2>
+        <p class="mb-2">Promote an on-deck song to the Current Songs list.</p>
+        <ul class="item-list" id="admin-ondeck-list"></ul>
+      </div>
+    </div>
   </div>
 
   <script src="js/config.js"></script>
   <script src="js/storage.js"></script>
   <script src="js/app.js"></script>
-  <script src="js/results.js"></script>
+  <script src="js/ondeck.js"></script>
 </body>
 </html>
