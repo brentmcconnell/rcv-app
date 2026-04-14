@@ -34,6 +34,22 @@
         </div>
         <ul class="item-list" id="item-list"></ul>
       </div>
+
+      <div class="card">
+        <h2>Manage Votes</h2>
+        <p class="mb-2">Remove individual votes (e.g. duplicates).</p>
+        <ul class="item-list" id="vote-list"></ul>
+      </div>
+
+      <div class="card">
+        <h2>Reset Survey</h2>
+        <p class="mb-2">Clear all votes to start a fresh round. Optionally clear the survey items too.</p>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-danger" id="clear-votes-btn">Clear All Votes</button>
+          <button class="btn btn-danger" id="clear-all-btn">Clear Votes &amp; Items</button>
+        </div>
+        <p id="reset-status" class="mt-2" style="display:none;"></p>
+      </div>
     </div>
   </div>
 
