@@ -352,6 +352,36 @@ button, .btn {
   text-decoration: underline;
 }
 
+/* On Deck vote buttons */
+.ondeck-votes {
+  white-space: nowrap;
+}
+
+.vote-btn {
+  padding: 4px 10px;
+  font-size: 14px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: #f8f9fa;
+  cursor: pointer;
+  margin-right: 4px;
+  transition: background 0.2s;
+}
+
+.vote-btn:hover {
+  background: #e8f4fd;
+}
+
+.vote-btn.voted.vote-up {
+  background: #d4edda;
+  border-color: #28a745;
+}
+
+.vote-btn.voted.vote-down {
+  background: #f8d7da;
+  border-color: #dc3545;
+}
+
 /* Utilities */
 .hidden {
   display: none !important;

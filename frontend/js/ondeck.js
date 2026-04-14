@@ -48,6 +48,11 @@ document.addEventListener("DOMContentLoaded", function () {
   function loadOnDeck() {
     TableStorage.get("songs", "config", "ondeck").then(function (entity) {
       ondeckItems = entity ? JSON.parse(entity.Items || "[]") : [];
+      // Backward compat: convert plain strings to objects.
+      ondeckItems = ondeckItems.map(function (item) {
+        if (typeof item === "string") return { name: item, up: 0, down: 0 };
+        return item;
+      });
       renderOnDeck();
       if (!adminPanel.classList.contains("hidden")) {
         renderAdminList();
@@ -63,15 +68,67 @@ document.addEventListener("DOMContentLoaded", function () {
       ondeckList.innerHTML = '<p style="color:#999;">No songs on deck right now.</p>';
       return;
     }
-    var html = '<table class="songs-table"><thead><tr><th>#</th><th>Song</th></tr></thead><tbody>';
-    ondeckItems.forEach(function (name, i) {
+    var voted = JSON.parse(localStorage.getItem("rcv_ondeck_votes") || "{}");
+    var html = '<table class="songs-table"><thead><tr><th>#</th><th>Song</th><th>Votes</th></tr></thead><tbody>';
+    ondeckItems.forEach(function (item, i) {
+      var userVote = voted[item.name] || null;
       html += "<tr>";
       html += "<td>" + (i + 1) + "</td>";
-      html += "<td>" + escapeHtml(name) + "</td>";
+      html += "<td>" + escapeHtml(item.name) + "</td>";
+      html += '<td class="ondeck-votes">';
+      html += '<button class="vote-btn vote-up' + (userVote === "up" ? " voted" : "") + '" data-index="' + i + '" data-dir="up">&#128077; ' + (item.up || 0) + "</button>";
+      html += '<button class="vote-btn vote-down' + (userVote === "down" ? " voted" : "") + '" data-index="' + i + '" data-dir="down">&#128078; ' + (item.down || 0) + "</button>";
+      html += "</td>";
       html += "</tr>";
     });
     html += "</tbody></table>";
     ondeckList.innerHTML = html;
+
+    // Attach vote handlers
+    ondeckList.querySelectorAll(".vote-btn").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var idx = parseInt(btn.getAttribute("data-index"));
+        var dir = btn.getAttribute("data-dir");
+        castOnDeckVote(idx, dir);
+      });
+    });
+  }
+
+  function castOnDeckVote(index, dir) {
+    var item = ondeckItems[index];
+    var voted = JSON.parse(localStorage.getItem("rcv_ondeck_votes") || "{}");
+    var prev = voted[item.name] || null;
+
+    // If already voted same direction, do nothing.
+    if (prev === dir) return;
+
+    // Undo previous vote if switching.
+    if (prev === "up") item.up = Math.max(0, (item.up || 0) - 1);
+    if (prev === "down") item.down = Math.max(0, (item.down || 0) - 1);
+
+    // Apply new vote.
+    if (dir === "up") item.up = (item.up || 0) + 1;
+    if (dir === "down") item.down = (item.down || 0) + 1;
+
+    voted[item.name] = dir;
+    localStorage.setItem("rcv_ondeck_votes", JSON.stringify(voted));
+
+    saveOnDeck().then(function () {
+      renderOnDeck();
+    }).catch(function (e) {
+      // Revert on failure.
+      if (dir === "up") item.up = Math.max(0, (item.up || 0) - 1);
+      if (dir === "down") item.down = Math.max(0, (item.down || 0) - 1);
+      if (prev) {
+        if (prev === "up") item.up = (item.up || 0) + 1;
+        if (prev === "down") item.down = (item.down || 0) + 1;
+        voted[item.name] = prev;
+      } else {
+        delete voted[item.name];
+      }
+      localStorage.setItem("rcv_ondeck_votes", JSON.stringify(voted));
+      renderOnDeck();
+    });
   }
 
   function renderAdminList() {
@@ -80,10 +137,10 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
     adminOndeckList.innerHTML = "";
-    ondeckItems.forEach(function (name, i) {
+    ondeckItems.forEach(function (item, i) {
       var li = document.createElement("li");
       li.innerHTML =
-        "<span>" + escapeHtml(name) + "</span>" +
+        "<span>" + escapeHtml(item.name) + ' <small style="color:#999;">(' + (item.up || 0) + " up / " + (item.down || 0) + " down)</small></span>" +
         '<div style="display:flex;gap:4px;">' +
         '<button class="btn btn-primary btn-sm move-btn">Move to Songs</button>' +
         '<button class="btn btn-danger btn-sm remove-btn">Remove</button>' +
@@ -95,7 +152,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function moveToSongs(index) {
-    var name = ondeckItems[index];
+    var name = ondeckItems[index].name;
     if (!confirm('Move "' + name + '" to Current Songs?\nYou\'ll be prompted for artist name.')) return;
 
     var artist = prompt("Enter the artist for \"" + name + "\":");
@@ -151,7 +208,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function removeFromDeck(index) {
-    var name = ondeckItems[index];
+    var name = ondeckItems[index].name;
     if (!confirm('Remove "' + name + '" from On Deck?')) return;
     ondeckItems.splice(index, 1);
     saveOnDeck().then(function () {

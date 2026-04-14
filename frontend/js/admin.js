@@ -85,7 +85,7 @@ document.addEventListener("DOMContentLoaded", function () {
         return { name: item, score: scores[item] };
       }).sort(function (a, b) { return b.score - a.score; });
 
-      var top5 = sorted.slice(0, 5).map(function (entry) { return entry.name; });
+      var top5 = sorted.slice(0, 5).map(function (entry) { return { name: entry.name, up: 0, down: 0 }; });
 
       return TableStorage.upsert("songs", {
         PartitionKey: "config",

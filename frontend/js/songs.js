@@ -57,29 +57,91 @@ document.addEventListener("DOMContentLoaded", function () {
     return div.innerHTML;
   }
 
+  var ondeckData = [];
+
   function loadOnDeck() {
-    var ondeckList = document.getElementById("ondeck-list");
-    if (!ondeckList) return;
+    var ondeckListEl = document.getElementById("ondeck-list");
+    if (!ondeckListEl) return;
     TableStorage.get("songs", "config", "ondeck").then(function (entity) {
-      var items = entity ? JSON.parse(entity.Items || "[]") : [];
-      renderOnDeck(ondeckList, items);
+      ondeckData = entity ? JSON.parse(entity.Items || "[]") : [];
+      // Backward compat: convert plain strings to objects.
+      ondeckData = ondeckData.map(function (item) {
+        if (typeof item === "string") return { name: item, up: 0, down: 0 };
+        return item;
+      });
+      renderOnDeck(ondeckListEl);
     }).catch(function (err) {
       console.error("loadOnDeck error:", err);
-      renderOnDeck(ondeckList, []);
+      ondeckData = [];
+      renderOnDeck(ondeckListEl);
     });
   }
 
-  function renderOnDeck(el, items) {
-    if (items.length === 0) {
+  function renderOnDeck(el) {
+    if (ondeckData.length === 0) {
       el.innerHTML = '<p style="color:#999;">No songs on deck right now.</p>';
       return;
     }
-    var html = '<table class="songs-table"><thead><tr><th>#</th><th>Song</th></tr></thead><tbody>';
-    items.forEach(function (name, i) {
-      html += "<tr><td>" + (i + 1) + "</td><td>" + escapeHtml(name) + "</td></tr>";
+    var voted = JSON.parse(localStorage.getItem("rcv_ondeck_votes") || "{}");
+    var html = '<table class="songs-table"><thead><tr><th>#</th><th>Song</th><th>Votes</th></tr></thead><tbody>';
+    ondeckData.forEach(function (item, i) {
+      var userVote = voted[item.name] || null;
+      html += "<tr>";
+      html += "<td>" + (i + 1) + "</td>";
+      html += "<td>" + escapeHtml(item.name) + "</td>";
+      html += '<td class="ondeck-votes">';
+      html += '<button class="vote-btn vote-up' + (userVote === "up" ? " voted" : "") + '" data-index="' + i + '" data-dir="up">&#128077; ' + (item.up || 0) + "</button>";
+      html += '<button class="vote-btn vote-down' + (userVote === "down" ? " voted" : "") + '" data-index="' + i + '" data-dir="down">&#128078; ' + (item.down || 0) + "</button>";
+      html += "</td>";
+      html += "</tr>";
     });
     html += "</tbody></table>";
     el.innerHTML = html;
+
+    el.querySelectorAll(".vote-btn").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var idx = parseInt(btn.getAttribute("data-index"));
+        var dir = btn.getAttribute("data-dir");
+        castOnDeckVote(idx, dir, el);
+      });
+    });
+  }
+
+  function castOnDeckVote(index, dir, el) {
+    var item = ondeckData[index];
+    var voted = JSON.parse(localStorage.getItem("rcv_ondeck_votes") || "{}");
+    var prev = voted[item.name] || null;
+
+    if (prev === dir) return;
+
+    if (prev === "up") item.up = Math.max(0, (item.up || 0) - 1);
+    if (prev === "down") item.down = Math.max(0, (item.down || 0) - 1);
+
+    if (dir === "up") item.up = (item.up || 0) + 1;
+    if (dir === "down") item.down = (item.down || 0) + 1;
+
+    voted[item.name] = dir;
+    localStorage.setItem("rcv_ondeck_votes", JSON.stringify(voted));
+
+    TableStorage.upsert("songs", {
+      PartitionKey: "config",
+      RowKey: "ondeck",
+      Items: JSON.stringify(ondeckData)
+    }).then(function () {
+      renderOnDeck(el);
+    }).catch(function () {
+      if (dir === "up") item.up = Math.max(0, (item.up || 0) - 1);
+      if (dir === "down") item.down = Math.max(0, (item.down || 0) - 1);
+      if (prev) {
+        if (prev === "up") item.up = (item.up || 0) + 1;
+        if (prev === "down") item.down = (item.down || 0) + 1;
+        voted[item.name] = prev;
+      } else {
+        delete voted[item.name];
+      }
+      localStorage.setItem("rcv_ondeck_votes", JSON.stringify(voted));
+      renderOnDeck(el);
+    });
   }
 
   function showAdminPanel() {
