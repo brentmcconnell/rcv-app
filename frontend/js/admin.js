@@ -35,6 +35,40 @@ document.addEventListener("DOMContentLoaded", function () {
     if (e.key === "Enter") addItem();
   });
 
+  var toggleVotingBtn = document.getElementById("toggle-voting-btn");
+  var votingOpen = true;
+
+  toggleVotingBtn.addEventListener("click", function () {
+    votingOpen = !votingOpen;
+    TableStorage.upsert("survey", {
+      PartitionKey: "config",
+      RowKey: "status",
+      VotingOpen: votingOpen ? "true" : "false"
+    }).then(function () {
+      renderVotingStatus();
+    }).catch(function (e) {
+      votingOpen = !votingOpen;
+      showAlert(container, "Failed to update voting status: " + e.message);
+    });
+  });
+
+  function loadVotingStatus() {
+    TableStorage.get("survey", "config", "status").then(function (entity) {
+      votingOpen = !entity || entity.VotingOpen !== "false";
+      renderVotingStatus();
+    });
+  }
+
+  function renderVotingStatus() {
+    if (votingOpen) {
+      toggleVotingBtn.textContent = "Close Voting";
+      toggleVotingBtn.className = "btn btn-danger";
+    } else {
+      toggleVotingBtn.textContent = "Open Voting";
+      toggleVotingBtn.className = "btn btn-primary";
+    }
+  }
+
   document.getElementById("clear-votes-btn").addEventListener("click", function () {
     if (!confirm("This will delete ALL votes. Are you sure?")) return;
     clearVotes(false);
@@ -52,6 +86,7 @@ document.addEventListener("DOMContentLoaded", function () {
     adminPanel.classList.remove("hidden");
     loadItems();
     loadVotes();
+    loadVotingStatus();
   }
 
   function loadItems() {

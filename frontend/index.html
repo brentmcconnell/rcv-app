@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ranked Choice Voting</title>
+  <title>Songs For The Barn</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <div class="passcode-container">
     <div class="card passcode-box">
-      <h1>Ranked Choice Voting</h1>
+      <h1>Songs For The Barn</h1>
       <p class="mb-2">Enter the passcode to continue.</p>
       <div class="form-group">
         <input type="password" id="passcode" placeholder="Passcode" autocomplete="off">
@@ -21,9 +21,9 @@
 
   <script src="js/config.js"></script>
   <script>
-    // If already authenticated, skip straight to voting
+    // If already authenticated, skip straight to songs
     if (sessionStorage.getItem('rcv_passcode') === CONFIG.passcode) {
-      window.location.href = 'vote.html';
+      window.location.href = 'songs.html';
     }
 
     document.getElementById('enter-btn').addEventListener('click', tryEnter);
@@ -35,7 +35,7 @@
       var code = document.getElementById('passcode').value;
       if (code === CONFIG.passcode) {
         sessionStorage.setItem('rcv_passcode', code);
-        window.location.href = 'vote.html';
+        window.location.href = 'songs.html';
       } else {
         var err = document.getElementById('error-msg');
         err.textContent = 'Incorrect passcode.';

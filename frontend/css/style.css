@@ -301,6 +301,57 @@ button, .btn {
   color: #155724;
 }
 
+/* Vote call-to-action banner */
+.vote-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #2c3e50;
+  color: white;
+  padding: 16px 24px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 1.1em;
+  font-weight: 600;
+}
+
+.vote-cta .btn {
+  font-size: 1em;
+  white-space: nowrap;
+}
+
+/* Songs table */
+.songs-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.songs-table th,
+.songs-table td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.songs-table th {
+  font-weight: 600;
+  color: #2c3e50;
+  border-bottom: 2px solid #ddd;
+}
+
+.songs-table tr:last-child td {
+  border-bottom: none;
+}
+
+.songs-table a {
+  color: #3498db;
+  text-decoration: none;
+}
+
+.songs-table a:hover {
+  text-decoration: underline;
+}
+
 /* Utilities */
 .hidden {
   display: none !important;

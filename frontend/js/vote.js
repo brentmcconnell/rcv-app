@@ -16,12 +16,25 @@ document.addEventListener("DOMContentLoaded", function () {
   var rankCount = document.getElementById("rank-count");
   var container = document.querySelector(".container");
 
+  var closedSection = document.getElementById("closed-section");
   var voterName = "";
   var voterKey = "";
   var items = [];
   var ranked = [];
   var available = [];
   var previousRankings = null;
+
+  // Check if voting is open before showing the name form.
+  TableStorage.get("survey", "config", "status").then(function (entity) {
+    if (entity && entity.VotingOpen === "false") {
+      closedSection.classList.remove("hidden");
+      nameSection.classList.add("hidden");
+    } else {
+      nameSection.classList.remove("hidden");
+    }
+  }).catch(function () {
+    nameSection.classList.remove("hidden");
+  });
 
   nameBtn.addEventListener("click", checkName);
   nameInput.addEventListener("keydown", function (e) {
