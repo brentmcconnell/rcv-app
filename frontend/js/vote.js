@@ -247,6 +247,15 @@ document.addEventListener("DOMContentLoaded", function () {
       if (e.key === "Enter") submitSuggestion();
     });
 
+    // Get or create a token to identify this browser's suggestions.
+    var myToken = localStorage.getItem("rcv_suggest_token");
+    if (!myToken) {
+      myToken = Math.random().toString(36).slice(2) + Date.now().toString(36);
+      localStorage.setItem("rcv_suggest_token", myToken);
+    }
+
+    var allSuggestions = [];
+
     loadSuggestions();
 
     function submitSuggestion() {
@@ -268,10 +277,10 @@ document.addEventListener("DOMContentLoaded", function () {
       suggestBtn.textContent = "Submitting...";
 
       TableStorage.get("survey", "config", "suggestions").then(function (entity) {
-        var suggestions = entity ? JSON.parse(entity.Items || "[]") : [];
+        allSuggestions = entity ? JSON.parse(entity.Items || "[]") : [];
 
         // Check for duplicate
-        var duplicate = suggestions.some(function (s) {
+        var duplicate = allSuggestions.some(function (s) {
           return s.artist.toLowerCase() === artist.toLowerCase() &&
                  s.title.toLowerCase() === title.toLowerCase();
         });
@@ -282,15 +291,15 @@ document.addEventListener("DOMContentLoaded", function () {
           return;
         }
 
-        var suggestion = { artist: artist, title: title };
+        var suggestion = { artist: artist, title: title, token: myToken };
         if (url) suggestion.url = url;
 
-        suggestions.push(suggestion);
+        allSuggestions.push(suggestion);
 
         return TableStorage.upsert("survey", {
           PartitionKey: "config",
           RowKey: "suggestions",
-          Items: JSON.stringify(suggestions)
+          Items: JSON.stringify(allSuggestions)
         }).then(function () {
           artistInput.value = "";
           titleInput.value = "";
@@ -309,25 +318,109 @@ document.addEventListener("DOMContentLoaded", function () {
     function loadSuggestions() {
       var listEl = document.getElementById("suggestions-list");
       TableStorage.get("survey", "config", "suggestions").then(function (entity) {
-        var suggestions = entity ? JSON.parse(entity.Items || "[]") : [];
-        if (suggestions.length === 0) {
+        allSuggestions = entity ? JSON.parse(entity.Items || "[]") : [];
+        if (allSuggestions.length === 0) {
           listEl.innerHTML = '<p style="color:#999;">No suggestions yet. Be the first!</p>';
           return;
         }
-        var html = '<table class="songs-table"><thead><tr><th>Artist</th><th>Song</th><th>Chords</th></tr></thead><tbody>';
-        suggestions.forEach(function (s) {
-          html += "<tr><td>" + escapeHtml(s.artist) + "</td><td>" + escapeHtml(s.title) + "</td>";
-          if (s.url) {
-            html += '<td><a href="' + escapeHtml(s.url) + '" target="_blank" rel="noopener noreferrer">View</a></td>';
-          } else {
-            html += '<td style="color:#999;">—</td>';
-          }
-          html += "</tr>";
-        });
-        html += "</tbody></table>";
-        listEl.innerHTML = html;
+        renderSuggestionsList(listEl);
       }).catch(function () {
         listEl.innerHTML = '<p style="color:#999;">Could not load suggestions.</p>';
+      });
+    }
+
+    function renderSuggestionsList(listEl) {
+      var html = '<table class="songs-table"><thead><tr><th>Artist</th><th>Song</th><th>Chords</th><th></th></tr></thead><tbody>';
+      allSuggestions.forEach(function (s, i) {
+        html += "<tr><td>" + escapeHtml(s.artist) + "</td><td>" + escapeHtml(s.title) + "</td>";
+        if (s.url) {
+          html += '<td><a href="' + escapeHtml(s.url) + '" target="_blank" rel="noopener noreferrer">View</a></td>';
+        } else {
+          html += '<td style="color:#999;">—</td>';
+        }
+        if (s.token === myToken) {
+          html += '<td style="white-space:nowrap;">' +
+            '<button class="btn btn-primary btn-sm edit-suggest-btn" data-index="' + i + '">Edit</button> ' +
+            '<button class="btn btn-danger btn-sm del-suggest-btn" data-index="' + i + '">Delete</button>' +
+            '</td>';
+        } else {
+          html += "<td></td>";
+        }
+        html += "</tr>";
+      });
+      html += "</tbody></table>";
+      listEl.innerHTML = html;
+
+      listEl.querySelectorAll(".edit-suggest-btn").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var idx = parseInt(btn.getAttribute("data-index"));
+          editSuggestion(idx, listEl);
+        });
+      });
+
+      listEl.querySelectorAll(".del-suggest-btn").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var idx = parseInt(btn.getAttribute("data-index"));
+          if (!confirm('Delete "' + allSuggestions[idx].artist + ' — ' + allSuggestions[idx].title + '"?')) return;
+          allSuggestions.splice(idx, 1);
+          TableStorage.upsert("survey", {
+            PartitionKey: "config",
+            RowKey: "suggestions",
+            Items: JSON.stringify(allSuggestions)
+          }).then(function () {
+            renderSuggestionsList(listEl);
+          }).catch(function (e) {
+            showAlert(closedSection, "Failed to delete: " + e.message);
+          });
+        });
+      });
+    }
+
+    function editSuggestion(index, listEl) {
+      var s = allSuggestions[index];
+      listEl.innerHTML =
+        '<div class="card">' +
+        '<h3>Edit Suggestion</h3>' +
+        '<div class="form-group"><label>Artist</label><input type="text" id="edit-sug-artist" value="' + escapeHtml(s.artist) + '"></div>' +
+        '<div class="form-group"><label>Song</label><input type="text" id="edit-sug-title" value="' + escapeHtml(s.title) + '"></div>' +
+        '<div class="form-group"><label>Chords URL <span style="color:#999;font-weight:normal;">(optional)</span></label><input type="text" id="edit-sug-url" value="' + escapeHtml(s.url || "") + '" placeholder="https://..."></div>' +
+        '<div style="display:flex;gap:8px;">' +
+        '<button class="btn btn-primary" id="save-sug-btn">Save</button>' +
+        '<button class="btn btn-danger" id="cancel-sug-btn">Cancel</button>' +
+        '</div></div>';
+
+      document.getElementById("save-sug-btn").addEventListener("click", function () {
+        var newArtist = document.getElementById("edit-sug-artist").value.trim();
+        var newTitle = document.getElementById("edit-sug-title").value.trim();
+        var newUrl = document.getElementById("edit-sug-url").value.trim();
+
+        if (!newArtist || !newTitle) {
+          showAlert(closedSection, "Artist and Song are required.");
+          return;
+        }
+        if (newUrl && !/^https?:\/\//i.test(newUrl)) {
+          showAlert(closedSection, "URL must start with http:// or https://");
+          return;
+        }
+
+        s.artist = newArtist;
+        s.title = newTitle;
+        s.url = newUrl || undefined;
+
+        TableStorage.upsert("survey", {
+          PartitionKey: "config",
+          RowKey: "suggestions",
+          Items: JSON.stringify(allSuggestions)
+        }).then(function () {
+          showAlert(closedSection, "Suggestion updated!", "success");
+          renderSuggestionsList(listEl);
+        }).catch(function (e) {
+          showAlert(closedSection, "Failed to save: " + e.message);
+        });
+      });
+
+      document.getElementById("cancel-sug-btn").addEventListener("click", function () {
+        renderSuggestionsList(listEl);
       });
     }
   }

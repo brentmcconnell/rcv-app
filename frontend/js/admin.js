@@ -286,6 +286,7 @@ document.addEventListener("DOMContentLoaded", function () {
         "</span>" +
         '<div style="display:flex;gap:4px;">' +
         '<button class="btn btn-primary btn-sm add-btn">Add to Vote</button>' +
+        '<button class="btn btn-primary btn-sm edit-btn">Edit</button>' +
         '<button class="btn btn-danger btn-sm del-btn">Dismiss</button>' +
         "</div>";
       li.querySelector(".add-btn").addEventListener("click", function () {
@@ -305,6 +306,9 @@ document.addEventListener("DOMContentLoaded", function () {
           showAlert(container, '"' + itemName + '" added to survey items!', "success");
         });
       });
+      li.querySelector(".edit-btn").addEventListener("click", function () {
+        editSuggestion(i, el);
+      });
       li.querySelector(".del-btn").addEventListener("click", function () {
         suggestions.splice(i, 1);
         saveSuggestions().then(function () {
@@ -312,6 +316,53 @@ document.addEventListener("DOMContentLoaded", function () {
         });
       });
       el.appendChild(li);
+    });
+  }
+
+  function editSuggestion(index, el) {
+    var s = suggestions[index];
+    el.innerHTML = "";
+    var form = document.createElement("div");
+    form.className = "card";
+    form.innerHTML =
+      '<h3>Edit Suggestion</h3>' +
+      '<div class="form-group"><label>Artist</label><input type="text" id="edit-sug-artist" value="' + escapeHtml(s.artist) + '"></div>' +
+      '<div class="form-group"><label>Song</label><input type="text" id="edit-sug-title" value="' + escapeHtml(s.title) + '"></div>' +
+      '<div class="form-group"><label>Chords URL <span style="color:#999;font-weight:normal;">(optional)</span></label><input type="text" id="edit-sug-url" value="' + escapeHtml(s.url || "") + '" placeholder="https://..."></div>' +
+      '<div style="display:flex;gap:8px;">' +
+      '<button class="btn btn-primary" id="save-sug-btn">Save</button>' +
+      '<button class="btn btn-danger" id="cancel-sug-btn">Cancel</button>' +
+      '</div>';
+    el.appendChild(form);
+
+    document.getElementById("save-sug-btn").addEventListener("click", function () {
+      var newArtist = document.getElementById("edit-sug-artist").value.trim();
+      var newTitle = document.getElementById("edit-sug-title").value.trim();
+      var newUrl = document.getElementById("edit-sug-url").value.trim();
+
+      if (!newArtist || !newTitle) {
+        showAlert(container, "Artist and Song are required.");
+        return;
+      }
+      if (newUrl && !/^https?:\/\//i.test(newUrl)) {
+        showAlert(container, "URL must start with http:// or https://");
+        return;
+      }
+
+      s.artist = newArtist;
+      s.title = newTitle;
+      s.url = newUrl || undefined;
+
+      saveSuggestions().then(function () {
+        renderSuggestions(el);
+        showAlert(container, "Suggestion updated!", "success");
+      }).catch(function (e) {
+        showAlert(container, "Failed to save: " + e.message);
+      });
+    });
+
+    document.getElementById("cancel-sug-btn").addEventListener("click", function () {
+      renderSuggestions(el);
     });
   }
 
